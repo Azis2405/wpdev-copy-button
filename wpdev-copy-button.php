@@ -42,6 +42,7 @@ final class WPDev_Copy_Button
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('admin_init', [$this, 'register_plugin_settings']);
         add_action('admin_post_wpdev_export_csv', [$this, 'handle_export_csv']);
+        add_action('admin_post_wpdev_delete_analytics', [$this, 'handle_delete_analytics']);
         
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
@@ -134,6 +135,18 @@ final class WPDev_Copy_Button
 
     public function render_settings_page(): void
     {
+        // Tampilkan pesan sukses jika data analitik berhasil dihapus
+        if (isset($_GET['analytics_deleted']) && $_GET['analytics_deleted'] === '1') {
+            add_settings_error(
+                'wpdev_messages',
+                'wpdev_message',
+                'Semua data analitik berhasil dihapus.',
+                'updated'
+            );
+            settings_errors('wpdev_messages');
+        }
+
+        $last_delete = get_option('wpdev_last_analytics_delete', '');
         ?>
         <div class="wrap">
             <h1>Pengaturan WPDev Copy Button</h1>
@@ -145,6 +158,30 @@ final class WPDev_Copy_Button
                 submit_button();
                 ?>
             </form>
+
+            <hr style="margin-top: 30px; margin-bottom: 20px;">
+
+            <h2>Hapus Data Analitik</h2>
+            <p>Hapus semua data analitik pelacakan tombol salin dari database.</p>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua data analitik? Tindakan ini tidak dapat dibatalkan.');">
+                <input type="hidden" name="action" value="wpdev_delete_analytics">
+                <?php wp_nonce_field('wpdev_delete_analytics_nonce'); ?>
+                <p>
+                    <button type="submit" class="button button-secondary" style="background-color: #dc3232; color: #fff; border-color: #dc3232;">
+                        Hapus Semua Data Analitik
+                    </button>
+                </p>
+            </form>
+
+            <?php if (!empty($last_delete)) :
+                $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $last_delete);
+                $formatted_date = $date_obj ? $date_obj->format('d/m/Y H:i') : $last_delete;
+            ?>
+                <p style="color: #666; font-style: italic; margin-top: 10px;">
+                    Data terakhir dihapus pada: <?php echo esc_html($formatted_date); ?>
+                </p>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -372,7 +409,34 @@ final class WPDev_Copy_Button
         fclose($output);
         exit;
     }
-    
+
+    public function handle_delete_analytics(): void
+    {
+        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'wpdev_delete_analytics_nonce')) {
+            wp_die('Aksi tidak valid atau nonce salah.');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Anda tidak memiliki izin untuk melakukan aksi ini.');
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wpdev_copy_analytics';
+
+        // Hapus semua data dari tabel
+        $wpdb->query("TRUNCATE TABLE {$table_name}");
+
+        // Simpan tanggal terakhir penghapusan
+        update_option('wpdev_last_analytics_delete', current_time('mysql'));
+
+        // Redirect kembali ke halaman settings dengan pesan sukses
+        wp_redirect(add_query_arg([
+            'page' => 'wpdev-copy-settings',
+            'analytics_deleted' => '1'
+        ], admin_url('admin.php')));
+        exit;
+    }
+
     public function render_field_checkbox(array $args): void {
         $id = $args['id'];
         $checked = !empty($this->options[$id]) ? 'checked' : '';
