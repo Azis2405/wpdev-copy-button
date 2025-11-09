@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const { deviceData, topPagesData, topTaxonomiesData, topUserGroupsData } = wpdev_chart_data;
+    const { deviceData, topPagesData, topUserGroupsData } = wpdev_chart_data;
 
     /**
      * Helper function untuk membuat konfigurasi tooltip yang cerdas.
@@ -61,37 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: { display: true, text: 'Top 10 Halaman Paling Disalin' },
                     // Gunakan konfigurasi tooltip yang baru
                     tooltip: createTooltipConfig(topPagesData)
-                },
-                scales: {
-                    x: { beginAtZero: true, ticks: { precision: 0 } }
-                }
-            }
-        });
-    }
-
-    /**
-     * Inisialisasi Grafik Batang Top 10 Taksonomi
-     */
-    const topTaxonomiesChartCtx = document.getElementById('wpdevTopTaxonomiesChart');
-    if (topTaxonomiesChartCtx && topTaxonomiesData) {
-        new Chart(topTaxonomiesChartCtx, {
-            type: 'bar',
-            data: {
-                labels: topTaxonomiesData.labels,
-                datasets: [{
-                    label: 'Jumlah Salinan',
-                    data: topTaxonomiesData.values,
-                    backgroundColor: '#F36A6A',
-                    borderColor: '#D95353',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: 'Top 10 Kategori/Taksonomi' }
                 },
                 scales: {
                     x: { beginAtZero: true, ticks: { precision: 0 } }

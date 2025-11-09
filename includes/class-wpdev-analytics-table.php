@@ -65,7 +65,6 @@ class WPDev_Analytics_Table extends WP_List_Table
             'target_id'     => 'Elemen (Target ID)',
             'page_url'      => 'Halaman Sumber',
             'post_type'     => 'Jenis Konten',
-            'post_terms'    => 'Kategori/Taksonomi',
             'user_email'    => 'User',
             'user_ip_hash'  => 'IP Hash', // Dipindahkan ke sebelah kanan User
             'user_group'    => 'Grup Pengguna',
@@ -108,9 +107,6 @@ class WPDev_Analytics_Table extends WP_List_Table
             
             case 'post_type':
                 return $this->get_content_type_label($item['page_url']);
-
-            case 'post_terms':
-                return $this->get_all_post_terms_list($item['page_url']);
 
             case 'user_email':
                 if ($item['user_email'] === 'Guest') return '<em>Guest</em>';
@@ -213,35 +209,6 @@ class WPDev_Analytics_Table extends WP_List_Table
             }
         }
         return '<em>Non-Singular</em>';
-    }
-
-    private function get_all_post_terms_list(string $page_url): string
-    {
-        $post_id = $this->get_post_id_from_url($page_url);
-
-        if ($post_id === 0) {
-            return '<em>N/A</em>';
-        }
-
-        $taxonomies = get_object_taxonomies(get_post_type($post_id), 'objects');
-        $all_terms = [];
-
-        foreach ($taxonomies as $taxonomy) {
-            if (!$taxonomy->public || !$taxonomy->show_ui) {
-                continue;
-            }
-            $terms = get_the_terms($post_id, $taxonomy->name);
-            if (!empty($terms) && !is_wp_error($terms)) {
-                $term_names = wp_list_pluck($terms, 'name');
-                $all_terms = array_merge($all_terms, $term_names);
-            }
-        }
-
-        if (empty($all_terms)) {
-            return '<em>Tidak ada</em>';
-        }
-
-        return esc_html(implode(', ', array_unique($all_terms)));
     }
 
     private function get_device_icon(string $user_agent): string
