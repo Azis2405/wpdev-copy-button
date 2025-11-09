@@ -42,7 +42,6 @@ final class WPDev_Copy_Button
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('admin_init', [$this, 'register_plugin_settings']);
         add_action('admin_post_wpdev_export_csv', [$this, 'handle_export_csv']);
-        add_action('admin_post_wpdev_delete_analytics', [$this, 'handle_delete_analytics']);
         
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
@@ -125,6 +124,11 @@ final class WPDev_Copy_Button
 
     public function register_plugin_settings(): void
     {
+        // Handle delete analytics action
+        if (isset($_POST['wpdev_copy_btn_delete_all_analytics'])) {
+            $this->handle_delete_analytics_request();
+        }
+
         register_setting('wpdev_copy_button_options_group', 'wpdev_copy_options', [$this, 'sanitize_settings']);
         add_settings_section('wpdev_general_section', 'Pengaturan Umum & Perilaku', null, 'wpdev-copy-settings');
         add_settings_field('success_duration', 'Durasi Status Sukses (ms)', [$this, 'render_field_number'], 'wpdev-copy-settings', 'wpdev_general_section', ['id' => 'success_duration']);
@@ -133,10 +137,37 @@ final class WPDev_Copy_Button
         add_settings_field('ignored_roles', 'Abaikan Peran Pengguna', [$this, 'render_field_roles_multicheck'], 'wpdev-copy-settings', 'wpdev_analytics_section', ['id' => 'ignored_roles']);
     }
 
+    private function handle_delete_analytics_request(): void
+    {
+        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'wpdev_copy_btn_delete_analytics_nonce')) {
+            wp_die('Aksi tidak valid atau nonce salah.');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Anda tidak memiliki izin untuk melakukan aksi ini.');
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wpdev_copy_analytics';
+
+        // Hapus semua data dari tabel
+        $wpdb->query("TRUNCATE TABLE {$table_name}");
+
+        // Simpan tanggal terakhir penghapusan
+        update_option('wpdev_last_analytics_delete', current_time('mysql'));
+
+        // Redirect kembali ke halaman settings dengan pesan sukses
+        wp_redirect(add_query_arg([
+            'page' => 'wpdev-copy-settings',
+            'wpdev_analytics_deleted' => '1'
+        ], admin_url('admin.php')));
+        exit;
+    }
+
     public function render_settings_page(): void
     {
         // Tampilkan pesan sukses jika data analitik berhasil dihapus
-        if (isset($_GET['analytics_deleted']) && $_GET['analytics_deleted'] === '1') {
+        if (isset($_GET['wpdev_analytics_deleted']) && $_GET['wpdev_analytics_deleted'] === '1') {
             add_settings_error(
                 'wpdev_messages',
                 'wpdev_message',
@@ -164,9 +195,9 @@ final class WPDev_Copy_Button
             <h2>Hapus Data Analitik</h2>
             <p>Hapus semua data analitik pelacakan tombol salin dari database.</p>
 
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua data analitik? Tindakan ini tidak dapat dibatalkan.');">
-                <input type="hidden" name="action" value="wpdev_delete_analytics">
-                <?php wp_nonce_field('wpdev_delete_analytics_nonce'); ?>
+            <form method="post" action="" onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua data analitik? Tindakan ini tidak dapat dibatalkan.');">
+                <input type="hidden" name="wpdev_copy_btn_delete_all_analytics" value="1">
+                <?php wp_nonce_field('wpdev_copy_btn_delete_analytics_nonce'); ?>
                 <p>
                     <button type="submit" class="button button-secondary" style="background-color: #dc3232; color: #fff; border-color: #dc3232;">
                         Hapus Semua Data Analitik
@@ -407,33 +438,6 @@ final class WPDev_Copy_Button
         }
 
         fclose($output);
-        exit;
-    }
-
-    public function handle_delete_analytics(): void
-    {
-        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'wpdev_delete_analytics_nonce')) {
-            wp_die('Aksi tidak valid atau nonce salah.');
-        }
-
-        if (!current_user_can('manage_options')) {
-            wp_die('Anda tidak memiliki izin untuk melakukan aksi ini.');
-        }
-
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wpdev_copy_analytics';
-
-        // Hapus semua data dari tabel
-        $wpdb->query("TRUNCATE TABLE {$table_name}");
-
-        // Simpan tanggal terakhir penghapusan
-        update_option('wpdev_last_analytics_delete', current_time('mysql'));
-
-        // Redirect kembali ke halaman settings dengan pesan sukses
-        wp_redirect(add_query_arg([
-            'page' => 'wpdev-copy-settings',
-            'analytics_deleted' => '1'
-        ], admin_url('admin.php')));
         exit;
     }
 
