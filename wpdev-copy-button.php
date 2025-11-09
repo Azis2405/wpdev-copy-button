@@ -98,7 +98,6 @@ final class WPDev_Copy_Button
             wp_localize_script('wpdev-admin-charts', 'wpdev_chart_data', [
                 'topPagesData'      => $this->prepare_data_for_top_pages_chart($date_from, $date_to),
                 'topUserGroupsData' => $this->prepare_data_for_top_user_groups_chart($date_from, $date_to),
-                'topTaxonomiesData' => $this->prepare_data_for_top_taxonomies_chart($date_from, $date_to),
                 'deviceData'        => $this->prepare_data_for_device_bar_chart($date_from, $date_to),
             ]);
         }
@@ -318,7 +317,6 @@ final class WPDev_Copy_Button
 
         echo '<div class="wpdev-charts-wrapper">';
         echo '  <div class="wpdev-chart-container"><canvas id="wpdevTopPagesChart"></canvas></div>';
-        echo '  <div class="wpdev-chart-container"><canvas id="wpdevTopTaxonomiesChart"></canvas></div>';
         echo '  <div class="wpdev-chart-container"><canvas id="wpdevTopUserGroupsChart"></canvas></div>';
         echo '  <div class="wpdev-chart-container"><canvas id="wpdevDeviceChart"></canvas></div>';
         echo '</div>';
@@ -627,47 +625,6 @@ final class WPDev_Copy_Button
         return ['labels' => $labels, 'values' => $values, 'full_labels' => $full_labels];
     }
 
-    private function prepare_data_for_top_taxonomies_chart(string $date_from = '', string $date_to = ''): array
-    {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wpdev_copy_analytics';
-        [$where_clause, $params] = $this->get_date_where_clause($date_from, $date_to);
-
-        $query = "SELECT page_url FROM {$table_name} {$where_clause}";
-        $results = $wpdb->get_results($wpdb->prepare($query, $params));
-        
-        if (empty($results)) {
-            return ['labels' => [], 'values' => []];
-        }
-        $term_counts = [];
-        $post_id_cache = [];
-        foreach ($results as $row) {
-            $url = $row->page_url;
-            if (!isset($post_id_cache[$url])) {
-                $post_id_cache[$url] = url_to_postid($url);
-            }
-            $post_id = $post_id_cache[$url];
-            if ($post_id === 0) continue;
-            $taxonomies = get_object_taxonomies(get_post_type($post_id));
-            foreach ($taxonomies as $taxonomy) {
-                $terms = get_the_terms($post_id, $taxonomy);
-                if (!empty($terms) && !is_wp_error($terms)) {
-                    foreach ($terms as $term) {
-                        if (!isset($term_counts[$term->name])) {
-                            $term_counts[$term->name] = 0;
-                        }
-                        $term_counts[$term->name]++;
-                    }
-                }
-            }
-        }
-        arsort($term_counts);
-        $top_terms = array_slice($term_counts, 0, 10, true);
-        return [
-            'labels' => array_keys($top_terms),
-            'values' => array_values($top_terms)
-        ];
-    }
     
     public function handle_ajax_tracking(): void
     {
