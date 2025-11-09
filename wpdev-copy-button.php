@@ -41,24 +41,19 @@ final class WPDev_Copy_Button
 
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('admin_init', [$this, 'register_plugin_settings']);
-        add_action('admin_post_wpdev_delete_analytics', [$this, 'handle_delete_analytics_data']);
-        
         add_action('admin_post_wpdev_export_csv', [$this, 'handle_export_csv']);
         
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
-        if (!empty($this->options['enable_plugin'])) {
-            add_shortcode('tombol_salin', [$this, 'render_copy_button_shortcode']);
-            add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
-            add_action('wp_ajax_wpdev_track_copy', [$this, 'handle_ajax_tracking']);
-            add_action('wp_ajax_nopriv_wpdev_track_copy', [$this, 'handle_ajax_tracking']);
-        }
+        add_shortcode('tombol_salin', [$this, 'render_copy_button_shortcode']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
+        add_action('wp_ajax_wpdev_track_copy', [$this, 'handle_ajax_tracking']);
+        add_action('wp_ajax_nopriv_wpdev_track_copy', [$this, 'handle_ajax_tracking']);
     }
 
     private function get_default_options(): array
     {
         return [
-            'enable_plugin' => 'on',
             'success_duration' => 2000,
             'disable_on_copy' => 'on',
             'ignored_roles' => ['administrator' => 'on'],
@@ -131,13 +126,10 @@ final class WPDev_Copy_Button
     {
         register_setting('wpdev_copy_button_options_group', 'wpdev_copy_options', [$this, 'sanitize_settings']);
         add_settings_section('wpdev_general_section', 'Pengaturan Umum & Perilaku', null, 'wpdev-copy-settings');
-        add_settings_field('enable_plugin', 'Aktifkan Plugin', [$this, 'render_field_checkbox'], 'wpdev-copy-settings', 'wpdev_general_section', ['id' => 'enable_plugin']);
         add_settings_field('success_duration', 'Durasi Status Sukses (ms)', [$this, 'render_field_number'], 'wpdev-copy-settings', 'wpdev_general_section', ['id' => 'success_duration']);
         add_settings_field('disable_on_copy', 'Nonaktifkan Tombol Setelah Salin', [$this, 'render_field_checkbox'], 'wpdev-copy-settings', 'wpdev_general_section', ['id' => 'disable_on_copy']);
         add_settings_section('wpdev_analytics_section', 'Pengaturan Analitik', null, 'wpdev-copy-settings');
         add_settings_field('ignored_roles', 'Abaikan Peran Pengguna', [$this, 'render_field_roles_multicheck'], 'wpdev-copy-settings', 'wpdev_analytics_section', ['id' => 'ignored_roles']);
-        add_settings_section('wpdev_data_section', 'Manajemen Data', null, 'wpdev-copy-settings');
-        add_settings_field('delete_data', 'Hapus Data Analitik', [$this, 'render_field_delete_button'], 'wpdev-copy-settings', 'wpdev_data_section');
     }
 
     public function render_settings_page(): void
@@ -149,57 +141,14 @@ final class WPDev_Copy_Button
             <form method="post" action="options.php">
                 <?php
                 settings_fields('wpdev_copy_button_options_group');
-                // Render only general and analytics sections (not data management)
-                $this->do_settings_sections_exclude('wpdev-copy-settings', ['wpdev_data_section']);
+                do_settings_sections('wpdev-copy-settings');
                 submit_button();
                 ?>
             </form>
-
-            <!-- Data Management Section (outside form) -->
-            <h2>Manajemen Data</h2>
-            <table class="form-table">
-                <tbody>
-                    <tr>
-                        <th scope="row">Hapus Data Analitik</th>
-                        <td><?php $this->render_field_delete_button(); ?></td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
         <?php
     }
 
-    private function do_settings_sections_exclude(string $page, array $exclude_sections = []): void
-    {
-        global $wp_settings_sections, $wp_settings_fields;
-
-        if (!isset($wp_settings_sections[$page])) {
-            return;
-        }
-
-        foreach ((array) $wp_settings_sections[$page] as $section) {
-            if (in_array($section['id'], $exclude_sections, true)) {
-                continue;
-            }
-
-            if ($section['title']) {
-                echo "<h2>{$section['title']}</h2>\n";
-            }
-
-            if ($section['callback']) {
-                call_user_func($section['callback'], $section);
-            }
-
-            if (!isset($wp_settings_fields) || !isset($wp_settings_fields[$page]) || !isset($wp_settings_fields[$page][$section['id']])) {
-                continue;
-            }
-
-            echo '<table class="form-table" role="presentation">';
-            do_settings_fields($page, $section['id']);
-            echo '</table>';
-        }
-    }
-    
     public function render_shortcodes_page(): void
     {
         ?>
@@ -451,62 +400,24 @@ final class WPDev_Copy_Button
         echo '<p class="description">Tindakan dari peran pengguna yang dicentang tidak akan dilacak.</p>';
     }
 
-    public function render_field_delete_button(): void {
-        $delete_url = add_query_arg([
-            'action' => 'wpdev_delete_analytics',
-            '_wpnonce' => wp_create_nonce('wpdev_delete_analytics_nonce')
-        ], admin_url('admin-post.php'));
-        
-        printf(
-            '<a href="%s" class="button button-danger" onclick="return confirm(\'PERINGATAN: Anda akan menghapus semua data analitik. Tindakan ini tidak dapat diurungkan. Lanjutkan?\');">Hapus Semua Data Analitik</a>',
-            esc_url($delete_url)
-        );
-        echo '<p class="description">Gunakan tombol ini untuk menghapus seluruh catatan dari tabel analitik plugin.</p>';
-    }
-
     public function sanitize_settings(array $input): array
     {
         $new_input = [];
         $defaults = $this->get_default_options();
 
-        $new_input['enable_plugin'] = isset($input['enable_plugin']) ? 'on' : '';
         $new_input['disable_on_copy'] = isset($input['disable_on_copy']) ? 'on' : '';
         $new_input['success_duration'] = isset($input['success_duration']) ? absint($input['success_duration']) : $defaults['success_duration'];
-        
+
         $new_input['ignored_roles'] = [];
         if (!empty($input['ignored_roles']) && is_array($input['ignored_roles'])) {
             foreach (array_keys($input['ignored_roles']) as $role) {
                 $new_input['ignored_roles'][sanitize_key($role)] = 'on';
             }
         }
-        
+
         return $new_input;
     }
 
-    public function handle_delete_analytics_data(): void
-    {
-        // Verify nonce -gunakan $_REQUEST untuk lebih robust
-        $nonce = isset($_REQUEST['_wpnonce']) ? sanitize_text_field($_REQUEST['_wpnonce']) : '';
-
-        if (empty($nonce) || !wp_verify_nonce($nonce, 'wpdev_delete_analytics_nonce')) {
-            wp_die('Aksi tidak valid atau nonce salah. Silakan refresh halaman dan coba lagi.');
-        }
-
-        if (!current_user_can('manage_options')) {
-            wp_die('Anda tidak memiliki izin untuk melakukan aksi ini.');
-        }
-
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wpdev_copy_analytics';
-        $wpdb->query("TRUNCATE TABLE {$table_name}");
-
-        add_settings_error('wpdev_copy_options', 'data_deleted', 'Semua data analitik berhasil dihapus.', 'success');
-        set_transient('settings_errors', get_settings_errors(), 30);
-
-        wp_safe_redirect(admin_url('admin.php?page=wpdev-copy-settings&settings-updated=true'));
-        exit;
-    }
-    
     public function render_copy_button_shortcode(array $atts): string
     {
         $attributes = shortcode_atts(['target_id' => '', 'text' => 'Salin', 'icon' => ''], $atts, 'tombol_salin');
@@ -692,8 +603,6 @@ final class WPDev_Copy_Button
     
     public function handle_ajax_tracking(): void
     {
-        if (empty($this->options['enable_plugin'])) { wp_die(); }
-
         if (is_user_logged_in()) {
             $user = wp_get_current_user();
             $user_roles = (array) $user->roles;
@@ -769,7 +678,6 @@ function wpdev_copy_button_activate() {
 
     if (false === get_option('wpdev_copy_options')) {
         $default_options = [
-            'enable_plugin' => 'on',
             'success_duration' => 2000,
             'disable_on_copy' => 'on',
             'ignored_roles' => ['administrator' => 'on'],
