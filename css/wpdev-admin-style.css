@@ -1,0 +1,139 @@
+/**
+ * WPDev Admin Styles
+ */
+.wpdev-charts-wrapper {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.wpdev-chart-container {
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+/* --- BARU: Gaya untuk Form Filter dan Pencarian --- */
+.wpdev-filter-form {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.wpdev-filter-form .filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpdev-filter-form .filter-item .button {
+    margin-left: 10px;
+}
+
+.wp-list-table .tablenav.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.wpdev-table-search-form {
+    float: left;
+    margin-right: auto;
+}
+
+.wpdev-table-search-form .search-box {
+    display: flex;
+    gap: 5px;
+}
+/* --- AKHIR BARU --- */
+
+@media screen and (max-width: 1200px) {
+    .wpdev-charts-wrapper {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .wpdev-charts-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    /* --- BARU: Gaya Responsif untuk Filter --- */
+    .wpdev-filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wpdev-filter-form .filter-item {
+        justify-content: space-between;
+    }
+
+    .wpdev-filter-form .filter-item .button {
+        margin-left: 0;
+    }
+    
+    .wp-list-table .tablenav.top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wpdev-table-search-form {
+        margin-bottom: 10px;
+    }
+    
+    .wpdev-table-search-form .search-box {
+        flex-direction: column;
+    }
+     /* --- AKHIR BARU --- */
+}
+
+/**
+ * Gaya untuk Tab Shortcode di Halaman Pengaturan
+ */
+.wpdev-shortcode-guide h2,
+.wpdev-shortcode-guide h3 {
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+.shortcode-example {
+    padding: 15px 20px;
+    background-color: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.shortcode-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.shortcode-display pre {
+    flex-grow: 1;
+    margin: 0;
+    padding: 10px 15px;
+    background-color: #f7f7f7;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 14px;
+    color: #333;
+}
+
+.shortcode-display .wpdev-copy-btn {
+    flex-shrink: 0; /* Mencegah tombol menyusut */
+}

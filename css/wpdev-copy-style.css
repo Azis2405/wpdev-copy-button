@@ -1,0 +1,37 @@
+/**
+ * WPDev Copy Button Stylesheet
+ *
+ * Memberikan gaya pada tombol salin agar lebih menarik dan interaktif.
+ */
+
+.wpdev-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 79px;
+    font-size: 14px;
+    line-height: 1.5;
+    vertical-align: middle;
+    background: linear-gradient(135deg, #20C4CB, #3A7BD5, #8A3FFC);
+    background-size: 200% 200%;
+    transition: background-position 0.8s ease;
+    color: #ffffff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* BARU: Memberi jarak antara ikon dan teks */
+.wpdev-copy-btn i {
+    margin-right: 8px;
+}
+
+.wpdev-copy-btn:hover {
+  background-position: right center;
+}
+
+.wpdev-copy-btn:disabled {
+    padding: 10px 68px;
+    cursor: not-allowed;
+    color: #ffffff;
+}
